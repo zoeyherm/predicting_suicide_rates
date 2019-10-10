@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="profile" href="https://gmpg.org/xfn/11" />
+	<title>On Campus Training &#8211; STEP Up Ohlone</title>
+<meta name="google-site-verification" content="4YLIrajg4OJIfrlwDpbiC0hwqG4gLXN32YrcY1JxYKM" />
+
+<!-- Async WordPress.com Remote Login -->
+<script id="wpcom_remote_login_js">
+var wpcom_remote_login_extra_auth = '';
+function wpcom_remote_login_remove_dom_node_id( element_id ) {
+	var dom_node = document.getElementById( element_id );
+	if ( dom_node ) { dom_node.remove(); }
+}
+function wpcom_remote_login_remove_dom_node_classes( class_name ) {
+	var dom_nodes = document.querySelectorAll( '.' + class_name );
+	for ( var i = 0; i < dom_nodes.length; i++ ) {
+		dom_nodes[i].remove();
+	}
+}
+function wpcom_remote_login_final_cleanup() {
+	wpcom_remote_login_remove_dom_node_classes( "wpcom_remote_login_msg" );
+	wpcom_remote_login_remove_dom_node_id( "wpcom_remote_login_key" );
+	wpcom_remote_login_remove_dom_node_id( "wpcom_remote_login_validate" );
+	wpcom_remote_login_remove_dom_node_id( "wpcom_remote_login_js" );
+	wpcom_remote_login_remove_dom_node_id( "wpcom_request_access_iframe" );
+	wpcom_remote_login_remove_dom_node_id( "wpcom_request_access_styles" );
+}
+
+// Watch for messages back from the remote login
+window.addEventListener( "message", function( e ) {
+	if ( e.origin === "https://r-login.wordpress.com" ) {
+		var data = {};
+		try {
+			data = JSON.parse( e.data );
+		} catch( e ) {
+			wpcom_remote_login_final_cleanup();
+			return;
+		}
+
+		if ( data.msg === 'LOGIN' ) {
+			// Clean up the login check iframe
+			wpcom_remote_login_remove_dom_node_id( "wpcom_remote_login_key" );
+
+			var id_regex = new RegExp( /^[0-9]+$/ );
+			var token_regex = new RegExp( /^.*|.*|.*$/ );
+			if (
+				token_regex.test( data.token )
+				&& id_regex.test( data.wpcomid )
+			) {
+				// We have everything we need to ask for a login
+				var script = document.createElement( "script" );
+				script.setAttribute( "id", "wpcom_remote_login_validate" );
+				script.src = '/remote-login.php?wpcom_remote_login=validate'
+					+ '&wpcomid=' + data.wpcomid
+					+ '&token=' + encodeURIComponent( data.token )
+					+ '&host=' + window.location.protocol
+						+ '//' + window.location.hostname;
+				document.body.appendChild( script );
+			}
+
+			return;
+		}
+
+		// Safari ITP, not logged in, so redirect
+		if ( data.msg === 'LOGIN-REDIRECT' ) {
+			window.location = 'https://wordpress.com/log-in?redirect_to=' + window.location.href;
+			return;
+		}
+
+		// Safari ITP, storage access failed, remove the request
+		if ( data.msg === 'LOGIN-REMOVE' ) {
+			var css_zap = 'html { -webkit-transition: margin-top 1s; transition: margin-top 1s; } /* 9001 */ html { margin-top: 0 !important; } * html body { margin-top: 0 !important; } @media screen and ( max-width: 782px ) { html { margin-top: 0 !important; } * html body { margin-top: 0 !important; } }';
+			var style_zap = document.createElement( 'style' );
+			style_zap.type = 'text/css';
+			style_zap.appendChild( document.createTextNode( css_zap ) );
+			document.body.appendChild( style_zap );
+
+			var e = document.getElementById( 'wpcom_request_access_iframe' );
+			e.parentNode.removeChild( e );
+
+			document.cookie = 'wordpress_com_login_access=denied; path=/; max-age=31536000';
+
+			return;
+		}
+
+		// Safari ITP
+		if ( data.msg === 'REQUEST_ACCESS' ) {
+			console.log( 'request access: safari' );
+
+			// Check ITP iframe enable/disable knob
+			if ( wpcom_remote_login_extra_auth !== 'safari_itp_iframe' ) {
+				return;
+			}
+
+			// If we are in a "private window" there is no ITP.
+			var private_window = false;
+			try {
+				var opendb = window.openDatabase( null, null, null, null );
+			} catch( e ) {
+				private_window = true;
+			}
+
+			if ( private_window ) {
+				console.log( 'private window' );
+				return;
+			}
+
+			var iframe = document.createElement( 'iframe' );
+			iframe.id = 'wpcom_request_access_iframe';
+			iframe.setAttribute( 'scrolling', 'no' );
+			iframe.setAttribute( 'sandbox', 'allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-top-navigation-by-user-activation' );
+			iframe.src = 'https://r-login.wordpress.com/remote-login.php?wpcom_remote_login=request_access&origin=' + encodeURIComponent( data.origin ) + '&wpcomid=' + encodeURIComponent( data.wpcomid );
+
+			var css = 'html { -webkit-transition: margin-top 1s; transition: margin-top 1s; } /* 9001 */ html { margin-top: 46px !important; } * html body { margin-top: 46px !important; } @media screen and ( max-width: 660px ) { html { margin-top: 71px !important; } * html body { margin-top: 71px !important; } #wpcom_request_access_iframe { display: block; height: 71px !important; } } #wpcom_request_access_iframe { border: 0px; height: 46px; position: fixed; top: 0; left: 0; width: 100%; min-width: 100%; z-index: 99999; background: #23282d; } ';
+
+			var style = document.createElement( 'style' );
+			style.type = 'text/css';
+			style.id = 'wpcom_request_access_styles';
+			style.appendChild( document.createTextNode( css ) );
+			document.body.appendChild( style );
+
+			document.body.appendChild( iframe );
+		}
+
+		if ( data.msg === 'DONE' ) {
+			wpcom_remote_login_final_cleanup();
+		}
+	}
+}, false );
+
+// Inject the remote login iframe after the page has had a chance to load
+// more critical resources
+window.addEventListener( "DOMContentLoaded", function( e ) {
+	var iframe = document.createElement( "iframe" );
+	iframe.style.display = "none";
+	iframe.setAttribute( "scrolling", "no" );
+	iframe.setAttribute( "id", "wpcom_remote_login_key" );
+	iframe.src = "https://r-login.wordpress.com/remote-login.php"
+		+ "?wpcom_remote_login=key"
+		+ "&origin=aHR0cHM6Ly9zdGVwdXBvaGxvbmUub3Jn"
+		+ "&wpcomid=41613881"
+		+ "&time=1570645425";
+	document.body.appendChild( iframe );
+}, false );
+</script>
+<link rel='dns-prefetch' href='//s2.wp.com' />
+<link rel='dns-prefetch' href='//s1.wp.com' />
+<link rel='dns-prefetch' href='//stepupohlonedotorg1.wordpress.com' />
+<link rel='dns-prefetch' href='//s0.wp.com' />
+<link rel='dns-prefetch' href='//fonts.googleapis.com' />
+<link rel="alternate" type="application/rss+xml" title="STEP Up Ohlone &raquo; Feed" href="https://stepupohlone.org/feed/" />
+<link rel="alternate" type="application/rss+xml" title="STEP Up Ohlone &raquo; Comments Feed" href="https://stepupohlone.org/comments/feed/" />
+	<script type="text/javascript">
+		/* <![CDATA[ */
+		function addLoadEvent(func) {
+			var oldonload = window.onload;
+			if (typeof window.onload != 'function') {
+				window.onload = func;
+			} else {
+				window.onload = function () {
+					oldonload();
+					func();
+				}
+			}
+		}
+		/* ]]> */
+	</script>
+			<script type="text/javascript">
+			window._wpemojiSettings = {"baseUrl":"https:\/\/s0.wp.com\/wp-content\/mu-plugins\/wpcom-smileys\/twemoji\/2\/72x72\/","ext":".png","svgUrl":"https:\/\/s0.wp.com\/wp-content\/mu-plugins\/wpcom-smileys\/twemoji\/2\/svg\/","svgExt":".svg","source":{"concatemoji":"https:\/\/s2.wp.com\/wp-includes\/js\/wp-emoji-release.min.js?m=1556893897h&ver=5.3-beta2-46373"}};
+			!function(a,b,c){function d(a,b){var c=String.fromCharCode;l.clearRect(0,0,k.width,k.height),l.fillText(c.apply(this,a),0,0);var d=k.toDataURL();l.clearRect(0,0,k.width,k.height),l.fillText(c.apply(this,b),0,0);var e=k.toDataURL();return d===e}function e(a){var b;if(!l||!l.fillText)return!1;switch(l.textBaseline="top",l.font="600 32px Arial",a){case"flag":return!(b=d([55356,56826,55356,56819],[55356,56826,8203,55356,56819]))&&(b=d([55356,57332,56128,56423,56128,56418,56128,56421,56128,56430,56128,56423,56128,56447],[55356,57332,8203,56128,56423,8203,56128,56418,8203,56128,56421,8203,56128,56430,8203,56128,56423,8203,56128,56447]),!b);case"emoji":return b=d([55357,56424,55356,57342,8205,55358,56605,8205,55357,56424,55356,57340],[55357,56424,55356,57342,8203,55358,56605,8203,55357,56424,55356,57340]),!b}return!1}function f(a){var c=b.createElement("script");c.src=a,c.defer=c.type="text/javascript",b.getElementsByTagName("head")[0].appendChild(c)}var g,h,i,j,k=b.createElement("canvas"),l=k.getContext&&k.getContext("2d");for(j=Array("flag","emoji"),c.supports={everything:!0,everythingExceptFlag:!0},i=0;i<j.length;i++)c.supports[j[i]]=e(j[i]),c.supports.everything=c.supports.everything&&c.supports[j[i]],"flag"!==j[i]&&(c.supports.everythingExceptFlag=c.supports.everythingExceptFlag&&c.supports[j[i]]);c.supports.everythingExceptFlag=c.supports.everythingExceptFlag&&!c.supports.flag,c.DOMReady=!1,c.readyCallback=function(){c.DOMReady=!0},c.supports.everything||(h=function(){c.readyCallback()},b.addEventListener?(b.addEventListener("DOMContentLoaded",h,!1),a.addEventListener("load",h,!1)):(a.attachEvent("onload",h),b.attachEvent("onreadystatechange",function(){"complete"===b.readyState&&c.readyCallback()})),g=c.source||{},g.concatemoji?f(g.concatemoji):g.wpemoji&&g.twemoji&&(f(g.twemoji),f(g.wpemoji)))}(window,document,window._wpemojiSettings);
+		</script>
+		<style type="text/css">
+img.wp-smiley,
+img.emoji {
+	display: inline !important;
+	border: none !important;
+	box-shadow: none !important;
+	height: 1em !important;
+	width: 1em !important;
+	margin: 0 .07em !important;
+	vertical-align: -0.1em !important;
+	background: none !important;
+	padding: 0 !important;
+}
+</style>
+	<link rel='stylesheet' id='all-css-0-1' href='https://s2.wp.com/_static/??-eJylkk1uxCAMhS9UcKJqMtlUPUsgbsqEP2GjNLcvQ5LNtE0rdYMwvO/ZYMMShQ6e0TO4LKLNk/EES9TBCXLG4voQSU30BN9jOiQU/I4OqVy7ODDwUjSrNx4Z0Z/B1sxIcEOOg55Fjb7ID+2US6gwTeKeEjrZyQZUNnYEZUPFVRrSCsSrxf/b1Df9waZSBGz8jOmINsPzSnTYxa1sL6WI0RBvNZDcyOryI/+WrRVkGAWOpqSf9m+FRrYNxEBM5THEW02b/ePpr53dW1oUrmQZ0JZP8XyGLWackAtOx14wfpwjddiUigmJRFmdyW4fqjv36l7ay7Xpnvu+v94+AT00Bps=?cssminify=yes' type='text/css' media='all' />
+<link rel='stylesheet' id='modern-business-fonts-css'  href='https://fonts.googleapis.com/css?family=IBM+Plex+Sans%3A300%2C300i%2C500%2C700&#038;subset=latin%2Clatin-ext' type='text/css' media='all' />
+<link rel='stylesheet' id='all-css-2-1' href='https://s2.wp.com/_static/??-eJyVy1EKgCAMANALZSPEyo/oLGmDspyjTaLbR0fo/T+42cRCiqSgG2YU4BoglxUvMqHKTigCos+JJqHyEo82ijTwI35hzlPnej9a6/yQXp0TK8E=?cssminify=yes' type='text/css' media='all' />
+<link rel='stylesheet' id='print-css-3-1' href='https://s2.wp.com/wp-content/themes/pub/twentynineteen/print.css?m=1551232311h&cssminify=yes' type='text/css' media='print' />
+<link rel='stylesheet' id='all-css-4-1' href='https://s0.wp.com/_static/??-eJx9kNEKwyAMRX9oLiushT6MfYuVzGaoEU0p/ftZWraWgU/eG+9JojBHZTgIBgEZ0WOGOA0gcyksgQIKYgAKBrIsDtUcDfuryfkCBIGFCpy/Yrs4tPSTim6yVDIWWTk2WojDyaiX05RqaMLBsS3SQkkdbA3SZm0+6PRTtXjkLNsmkEed1ln7WaMyG9KuPMXy2fxB++eOd7COB+3WwNM/mra73bu+6dv3B0xHk/g=?cssminify=yes' type='text/css' media='all' />
+<script type='text/javascript' src='https://s2.wp.com/_static/??-eJyFztEKwjAMBdAfsisyOnwRv6XWOFKXtDbphn69HeiDMBQC9+EeuLFLNshhqhcQG9vdK5THO7ooO/sLGMKxeIWOkD84JFZgXW1OogQifoSNltIZJzBVoDTA2mauacN9v4Q8Iyx/WQTNPtxMAcHnun6i4965Q++GwfXxBTkPW9k='></script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="https://stepupohlonedotorg1.wordpress.com/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="https://s1.wp.com/wp-includes/wlwmanifest.xml" /> 
+<meta name="generator" content="WordPress.com" />
+<link rel="canonical" href="https://stepupohlone.org/training/on-campus-training/" />
+<link rel='shortlink' href='https://wp.me/P2OBFD-T' />
+		<!-- Custom Logo: hide header text -->
+		<style id="custom-logo-css" type="text/css">
+			.site-title {
+				position: absolute;
+				clip: rect(1px, 1px, 1px, 1px);
+			}
+		</style>
+		<link rel="alternate" type="application/json+oembed" href="https://public-api.wordpress.com/oembed/?format=json&amp;url=https%3A%2F%2Fstepupohlone.org%2Ftraining%2Fon-campus-training%2F&amp;for=wpcom-auto-discovery" /><link rel="alternate" type="application/xml+oembed" href="https://public-api.wordpress.com/oembed/?format=xml&amp;url=https%3A%2F%2Fstepupohlone.org%2Ftraining%2Fon-campus-training%2F&amp;for=wpcom-auto-discovery" />
+<!-- Jetpack Open Graph Tags -->
+<meta property="og:type" content="article" />
+<meta property="og:title" content="On Campus Training" />
+<meta property="og:url" content="https://stepupohlone.org/training/on-campus-training/" />
+<meta property="og:description" content="Click here to download the Advocacy Training application Click here to see the training &amp; meeting calendar" />
+<meta property="article:published_time" content="2012-10-20T22:36:07+00:00" />
+<meta property="article:modified_time" content="2019-10-06T01:16:19+00:00" />
+<meta property="og:site_name" content="STEP Up Ohlone" />
+<meta property="og:image" content="https://stepupohlonedotorg1.files.wordpress.com/2019/10/participate-in-a-mental-health-advocacy-training.png" />
+<meta property="og:image:secure_url" content="https://stepupohlonedotorg1.files.wordpress.com/2019/10/participate-in-a-mental-health-advocacy-training.png" />
+<meta property="og:image:width" content="1728" />
+<meta property="og:image:height" content="2304" />
+<meta property="og:locale" content="en_US" />
+<meta name="twitter:site" content="@wordpressdotcom" />
+<meta name="twitter:text:title" content="On Campus Training" />
+<meta name="twitter:image" content="https://stepupohlonedotorg1.files.wordpress.com/2019/10/participate-in-a-mental-health-advocacy-training.png?w=1400" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta property="article:publisher" content="https://www.facebook.com/WordPresscom" />
+
+<!-- End Jetpack Open Graph Tags -->
+<link rel="shortcut icon" type="image/x-icon" href="https://secure.gravatar.com/blavatar/5d7eb45ce2d79472c05da55da840ebf0?s=32" sizes="16x16" />
+<link rel="icon" type="image/x-icon" href="https://secure.gravatar.com/blavatar/5d7eb45ce2d79472c05da55da840ebf0?s=32" sizes="16x16" />
+<link rel="apple-touch-icon-precomposed" href="https://secure.gravatar.com/blavatar/5d7eb45ce2d79472c05da55da840ebf0?s=114" />
+<link rel='openid.server' href='https://stepupohlone.org/?openidserver=1' />
+<link rel='openid.delegate' href='https://stepupohlone.org/' />
+<link rel="search" type="application/opensearchdescription+xml" href="https://stepupohlone.org/osd.xml" title="STEP Up Ohlone" />
+<link rel="search" type="application/opensearchdescription+xml" href="https://s1.wp.com/opensearch.xml" title="WordPress.com" />
+
+	<style type="text/css" id="custom-theme-colors" >
+		
+		/*
+		 * Set background for:
+		 * - featured image :before
+		 * - featured image :before
+		 * - post thumbmail :before
+		 * - post thumbmail :before
+		 * - Submenu
+		 * - Sticky Post
+		 * - buttons
+		 * - WP Block Button
+		 * - Blocks
+		 */
+		.image-filters-enabled .site-header.featured-image .site-featured-image:before,
+		.image-filters-enabled .site-header.featured-image .site-featured-image:after,
+		.image-filters-enabled .entry .post-thumbnail:before,
+		.image-filters-enabled .entry .post-thumbnail:after,
+		.main-navigation .sub-menu,
+		.sticky-post,
+		.entry .entry-content .wp-block-button .wp-block-button__link:not(.has-background),
+		.entry .button, button, input[type="button"], input[type="reset"], input[type="submit"],
+		.entry .entry-content > .has-primary-background-color,
+		.entry .entry-content > *[class^="wp-block-"].has-primary-background-color,
+		.entry .entry-content > *[class^="wp-block-"] .has-primary-background-color,
+		.entry .entry-content > *[class^="wp-block-"].is-style-solid-color,
+		.entry .entry-content > *[class^="wp-block-"].is-style-solid-color.has-primary-background-color,
+		.entry .entry-content .wp-block-file .wp-block-file__button {
+			background-color: hsl( 171, 53%, 50% ); /* base: #0073a8; */
+		}
+
+		/*
+		 * Set Color for:
+		 * - all links
+		 * - main navigation links
+		 * - Post navigation links
+		 * - Post entry meta hover
+		 * - Post entry header more-link hover
+		 * - main navigation svg
+		 * - comment navigation
+		 * - Comment edit link hover
+		 * - Site Footer Link hover
+		 * - Widget links
+		 */
+		a,
+		a:visited,
+		.main-navigation .main-menu > li,
+		.main-navigation ul.main-menu > li > a,
+		.post-navigation .post-title,
+		.entry .entry-meta a:hover,
+		.entry .entry-footer a:hover,
+		.entry .entry-content .more-link:hover,
+		.main-navigation .main-menu > li > a + svg,
+		.comment .comment-metadata > a:hover,
+		.comment .comment-metadata .comment-edit-link:hover,
+		#colophon .site-info a:hover,
+		.widget a,
+		.entry .entry-content .wp-block-button.is-style-outline .wp-block-button__link:not(.has-text-color),
+		.entry .entry-content > .has-primary-color,
+		.entry .entry-content > *[class^="wp-block-"] .has-primary-color,
+		.entry .entry-content > *[class^="wp-block-"].is-style-solid-color blockquote.has-primary-color,
+		.entry .entry-content > *[class^="wp-block-"].is-style-solid-color blockquote.has-primary-color p {
+			color: hsl( 171, 53%, 50% ); /* base: #0073a8; */
+		}
+
+		/*
+		 * Set border color for:
+		 * wp block quote
+		 * :focus
+		 */
+		blockquote,
+		.entry .entry-content blockquote,
+		.entry .entry-content .wp-block-quote:not(.is-large),
+		.entry .entry-content .wp-block-quote:not(.is-style-large),
+		input[type="text"]:focus,
+		input[type="email"]:focus,
+		input[type="url"]:focus,
+		input[type="password"]:focus,
+		input[type="search"]:focus,
+		input[type="number"]:focus,
+		input[type="tel"]:focus,
+		input[type="range"]:focus,
+		input[type="date"]:focus,
+		input[type="month"]:focus,
+		input[type="week"]:focus,
+		input[type="time"]:focus,
+		input[type="datetime"]:focus,
+		input[type="datetime-local"]:focus,
+		input[type="color"]:focus,
+		textarea:focus {
+			border-color: hsl( 171, 53%, 50% ); /* base: #0073a8; */
+		}
+
+		.gallery-item > div > a:focus {
+			box-shadow: 0 0 0 2px hsl( 171, 53%, 50% ); /* base: #0073a8; */
+		}
+
+		/* Hover colors */
+		a:hover, a:active,
+		.main-navigation .main-menu > li > a:hover,
+		.main-navigation .main-menu > li > a:hover + svg,
+		.post-navigation .nav-links a:hover,
+		.post-navigation .nav-links a:hover .post-title,
+		.author-bio .author-description .author-link:hover,
+		.entry .entry-content > .has-secondary-color,
+		.entry .entry-content > *[class^="wp-block-"] .has-secondary-color,
+		.entry .entry-content > *[class^="wp-block-"].is-style-solid-color blockquote.has-secondary-color,
+		.entry .entry-content > *[class^="wp-block-"].is-style-solid-color blockquote.has-secondary-color p,
+		.comment .comment-author .fn a:hover,
+		.comment-reply-link:hover,
+		.comment-navigation .nav-previous a:hover,
+		.comment-navigation .nav-next a:hover,
+		#cancel-comment-reply-link:hover,
+		.widget a:hover {
+			color: hsl( 171, 53%, 23% ); /* base: #005177; */
+		}
+
+		.main-navigation .sub-menu > li > a:hover,
+		.main-navigation .sub-menu > li > a:focus,
+		.main-navigation .sub-menu > li > a:hover:after,
+		.main-navigation .sub-menu > li > a:focus:after,
+		.main-navigation .sub-menu > li > .menu-item-link-return:hover,
+		.main-navigation .sub-menu > li > .menu-item-link-return:focus,
+		.main-navigation .sub-menu > li > a:not(.submenu-expand):hover,
+		.main-navigation .sub-menu > li > a:not(.submenu-expand):focus,
+		.entry .entry-content > .has-secondary-background-color,
+		.entry .entry-content > *[class^="wp-block-"].has-secondary-background-color,
+		.entry .entry-content > *[class^="wp-block-"] .has-secondary-background-color,
+		.entry .entry-content > *[class^="wp-block-"].is-style-solid-color.has-secondary-background-color {
+			background-color: hsl( 171, 53%, 23% ); /* base: #005177; */
+		}
+
+		/* Text selection colors */
+		::selection {
+			background-color: hsl( 171, 50%, 90% ); /* base: #005177; */
+		}
+		::-moz-selection {
+			background-color: hsl( 171, 50%, 90% ); /* base: #005177; */
+		}	</style>
+	<style>
+.milestone-widget {
+	margin-bottom: 1em;
+}
+.milestone-content {
+	line-height: 2;
+	margin-top: 5px;
+	max-width: 17em;
+	padding: 0;
+	text-align: center;
+}
+.milestone-header {
+	background-color: #111111;
+	color: #ffffff;
+	line-height: 1.3;
+	margin: 0;
+	padding: .8em;
+}
+.milestone-header .event,
+.milestone-header .date {
+	display: block;
+}
+.milestone-header .event {
+	font-size: 120%;
+}
+.milestone-countdown .difference {
+	display: block;
+	font-size: 500%;
+	font-weight: bold;
+	line-height: 1.2;
+}
+.milestone-countdown,
+.milestone-message {
+	background-color: #ffffff;
+	border: 1px solid #767676;
+	border-top: 0;
+	color: #111111;
+	padding-bottom: 1em;
+}
+.milestone-message {
+	padding-top: 1em
+}
+</style>
+<meta name="application-name" content="STEP Up Ohlone" /><meta name="msapplication-window" content="width=device-width;height=device-height" /><meta name="msapplication-tooltip" content="Step Up to Promote Mental Health and Wellness" /><meta name="msapplication-task" content="name=Subscribe;action-uri=https://stepupohlone.org/feed/;icon-uri=https://secure.gravatar.com/blavatar/5d7eb45ce2d79472c05da55da840ebf0?s=16" /><meta name="msapplication-task" content="name=Sign up for a free blog;action-uri=http://wordpress.com/signup/;icon-uri=https://s1.wp.com/i/favicon.ico" /><meta name="msapplication-task" content="name=WordPress.com Support;action-uri=http://support.wordpress.com/;icon-uri=https://s1.wp.com/i/favicon.ico" /><meta name="msapplication-task" content="name=WordPress.com Forums;action-uri=http://forums.wordpress.com/;icon-uri=https://s1.wp.com/i/favicon.ico" /><meta name="description" content="Click here to download the Advocacy Training application Click here to see the training &amp; meeting calendar" />
+</head>
+
+<body class="page-template page-template-sidebar-page page-template-sidebar-page-php page page-id-55 page-child parent-pageid-667 wp-custom-logo wp-embed-responsive customizer-styles-applied singular image-filters-enabled highlander-enabled highlander-light">
+<div id="page" class="site">
+    <a class="skip-link screen-reader-text" href="#content">Skip to content</a>
+
+        <header id="masthead" class="site-header">
+            <div class="site-branding-container">
+                <div class="site-branding">
+
+			<div class="site-logo"><a href="https://stepupohlone.org/" class="custom-logo-link" rel="home"><img width="235" height="128" src="https://stepupohlonedotorg1.files.wordpress.com/2019/07/cropped-stepupfullcolor-whitelarge.jpg" class="custom-logo" alt="STEP Up Ohlone" srcset="https://stepupohlonedotorg1.files.wordpress.com/2019/07/cropped-stepupfullcolor-whitelarge.jpg 235w, https://stepupohlonedotorg1.files.wordpress.com/2019/07/cropped-stepupfullcolor-whitelarge.jpg?w=150&amp;h=82 150w" sizes="(max-width: 235px) 100vw, 235px" data-attachment-id="2873" data-permalink="https://stepupohlone.org/cropped-stepupfullcolor-whitelarge-jpg/" data-orig-file="https://stepupohlonedotorg1.files.wordpress.com/2019/07/cropped-stepupfullcolor-whitelarge.jpg" data-orig-size="235,128" data-comments-opened="0" data-image-meta="{&quot;aperture&quot;:&quot;0&quot;,&quot;credit&quot;:&quot;&quot;,&quot;camera&quot;:&quot;&quot;,&quot;caption&quot;:&quot;&quot;,&quot;created_timestamp&quot;:&quot;0&quot;,&quot;copyright&quot;:&quot;&quot;,&quot;focal_length&quot;:&quot;0&quot;,&quot;iso&quot;:&quot;0&quot;,&quot;shutter_speed&quot;:&quot;0&quot;,&quot;title&quot;:&quot;&quot;,&quot;orientation&quot;:&quot;0&quot;}" data-image-title="cropped-stepupfullcolor-whitelarge.jpg" data-image-description="&lt;p&gt;https://stepupohlonedotorg1.files.wordpress.com/2019/07/cropped-stepupfullcolor-whitelarge.jpg&lt;/p&gt;
+" data-medium-file="https://stepupohlonedotorg1.files.wordpress.com/2019/07/cropped-stepupfullcolor-whitelarge.jpg?w=235" data-large-file="https://stepupohlonedotorg1.files.wordpress.com/2019/07/cropped-stepupfullcolor-whitelarge.jpg?w=235" /></a></div>
+								<p class="site-title"><a href="https://stepupohlone.org/" rel="home">STEP Up Ohlone</a></p>
+			
+				<p class="site-description">
+				Step Up to Promote Mental Health and Wellness			</p>
+				<nav id="site-navigation" class="main-navigation" aria-label="Top Menu">
+			<div class="menu-main-navigation-container"><ul id="menu-main-navigation" class="main-menu"><li id="menu-item-1829" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-home menu-item-1829"><a href="https://stepupohlone.org/">Home</a></li>
+<li id="menu-item-681" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-681"><a href="https://stepupohlone.org/resources/" aria-haspopup="true" aria-expanded="false">Resources</a><button class="submenu-expand" tabindex="-1"><svg class="svg-icon" width="24" height="24" aria-hidden="true" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"></path><path fill="none" d="M0 0h24v24H0V0z"></path></svg></button>
+<ul class="sub-menu">
+	<li id="menu-item--1" class="mobile-parent-nav-menu-item menu-item--1"><button class="menu-item-link-return" tabindex="-1"><svg class="svg-icon" width="24" height="24" aria-hidden="true" role="img" focusable="false" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg>Resources</button></li>
+	<li id="menu-item-1845" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1845"><a href="https://stepupohlone.org/resources/crisis-protocol6/">Crisis Intervention Handbook</a></li>
+	<li id="menu-item-1556" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1556"><a href="https://stepupohlone.org/resources/for-faculty/">For Faculty</a></li>
+	<li id="menu-item-1871" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1871"><a href="https://stepupohlone.org/resources/for-students/">For Students</a></li>
+	<li id="menu-item-542" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-542"><a href="https://stepupohlone.org/resources/helpful-links/">Need Help?</a></li>
+	<li id="menu-item-1494" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1494"><a href="https://stepupohlone.org/resources/videos/">Videos</a></li>
+</ul>
+</li>
+<li id="menu-item-72" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-72"><a href="https://stepupohlone.org/campusevents/" aria-haspopup="true" aria-expanded="false">Campus Events</a><button class="submenu-expand" tabindex="-1"><svg class="svg-icon" width="24" height="24" aria-hidden="true" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"></path><path fill="none" d="M0 0h24v24H0V0z"></path></svg></button>
+<ul class="sub-menu">
+	<li id="menu-item--2" class="mobile-parent-nav-menu-item menu-item--2"><button class="menu-item-link-return" tabindex="-1"><svg class="svg-icon" width="24" height="24" aria-hidden="true" role="img" focusable="false" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg>Campus Events</button></li>
+	<li id="menu-item-380" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-380"><a href="https://stepupohlone.org/campusevents/community-events/">Current Events</a></li>
+	<li id="menu-item-1308" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1308"><a href="https://stepupohlone.org/campusevents/past-events/">Past Events</a></li>
+</ul>
+</li>
+<li id="menu-item-671" class="menu-item menu-item-type-post_type menu-item-object-page current-page-ancestor current-menu-ancestor current-menu-parent current-page-parent current_page_parent current_page_ancestor menu-item-has-children menu-item-671"><a href="https://stepupohlone.org/training/" aria-haspopup="true" aria-expanded="false">Training</a><button class="submenu-expand" tabindex="-1"><svg class="svg-icon" width="24" height="24" aria-hidden="true" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"></path><path fill="none" d="M0 0h24v24H0V0z"></path></svg></button>
+<ul class="sub-menu">
+	<li id="menu-item--3" class="mobile-parent-nav-menu-item menu-item--3"><button class="menu-item-link-return" tabindex="-1"><svg class="svg-icon" width="24" height="24" aria-hidden="true" role="img" focusable="false" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg>Training</button></li>
+	<li id="menu-item-2685" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-2685"><a href="https://stepupohlone.org/training/kognito/">Kognito at Ohlone</a></li>
+	<li id="menu-item-74" class="menu-item menu-item-type-post_type menu-item-object-page current-menu-item page_item page-item-55 current_page_item menu-item-74"><a href="https://stepupohlone.org/training/on-campus-training/" aria-current="page">On-Campus Training</a></li>
+</ul>
+</li>
+<li id="menu-item-103" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-103"><a href="https://stepupohlone.org/about-us/" aria-haspopup="true" aria-expanded="false">About Us</a><button class="submenu-expand" tabindex="-1"><svg class="svg-icon" width="24" height="24" aria-hidden="true" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"></path><path fill="none" d="M0 0h24v24H0V0z"></path></svg></button>
+<ul class="sub-menu">
+	<li id="menu-item--4" class="mobile-parent-nav-menu-item menu-item--4"><button class="menu-item-link-return" tabindex="-1"><svg class="svg-icon" width="24" height="24" aria-hidden="true" role="img" focusable="false" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg>About Us</button></li>
+	<li id="menu-item-1605" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1605"><a href="https://stepupohlone.org/about-us/our-mission/">Our Mission</a></li>
+	<li id="menu-item-363" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-363"><a href="https://stepupohlone.org/about-us/our-supporters/">Our Supporters</a></li>
+	<li id="menu-item-2963" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-2963"><a href="https://stepupohlone.org/about-us/2019-2020-cohort-of-student-wellness-ambassadors/">Student Wellness Ambassadors</a></li>
+	<li id="menu-item-81" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-81"><a href="https://stepupohlone.org/about-us/staff-directory/">Staff Directory</a></li>
+	<li id="menu-item-1746" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1746"><a href="https://stepupohlone.org/about-us/faculty-champions/">Staff and Faculty Champions</a></li>
+	<li id="menu-item-1093" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1093"><a href="https://stepupohlone.org/about-us/ohlones-speaks/">Ohlone Speaks</a></li>
+</ul>
+</li>
+</ul></div><div class="main-menu-more"><ul class="main-menu"><li class="menu-item menu-item-has-children"><button class="submenu-expand main-menu-more-toggle is-empty" tabindex="-1" aria-label="More" aria-haspopup="true" aria-expanded="false"><span class="screen-reader-text">More</span><svg class="svg-icon" width="24" height="24" aria-hidden="true" role="img" focusable="false" width="24" height="24" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><path d="M0 0h24v24H0z"/><path fill="currentColor" fill-rule="nonzero" d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zM6 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm6 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm6 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></g></svg></button><ul class="sub-menu hidden-links"><li id="menu-item--1" class="mobile-parent-nav-menu-item menu-item--1"><button class="menu-item-link-return"><svg class="svg-icon" width="24" height="24" aria-hidden="true" role="img" focusable="false" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg>Back</button></li></ul></li></ul></div>		</nav><!-- #site-navigation -->
+		</div><!-- .site-branding -->
+            </div><!-- .site-branding-container -->
+
+                    </header><!-- #masthead -->
+
+    <div id="content" class="site-content">
+
+	<section id="primary" class="content-area">
+		<main id="main" class="site-main">
+
+			
+<article id="post-55" class="post-55 page type-page status-publish hentry entry">
+		<header class="entry-header">
+		
+<h1 class="entry-title">On Campus Training</h1>
+	</header>
+	
+	<div class="entry-content">
+		
+<hr class="wp-block-separator" />
+
+
+
+<div style="height:30px;" aria-hidden="true" class="wp-block-spacer"></div>
+
+
+
+<div class="wp-block-image"><figure class="aligncenter size-large"><img data-attachment-id="3086" data-permalink="https://stepupohlone.org/participate-in-a-mental-health-advocacy-training/" data-orig-file="https://stepupohlonedotorg1.files.wordpress.com/2019/10/participate-in-a-mental-health-advocacy-training.png" data-orig-size="1728,2304" data-comments-opened="0" data-image-meta="{&quot;aperture&quot;:&quot;0&quot;,&quot;credit&quot;:&quot;&quot;,&quot;camera&quot;:&quot;&quot;,&quot;caption&quot;:&quot;&quot;,&quot;created_timestamp&quot;:&quot;0&quot;,&quot;copyright&quot;:&quot;&quot;,&quot;focal_length&quot;:&quot;0&quot;,&quot;iso&quot;:&quot;0&quot;,&quot;shutter_speed&quot;:&quot;0&quot;,&quot;title&quot;:&quot;&quot;,&quot;orientation&quot;:&quot;0&quot;}" data-image-title="participate-in-a-mental-health-advocacy-training" data-image-description="" data-medium-file="https://stepupohlonedotorg1.files.wordpress.com/2019/10/participate-in-a-mental-health-advocacy-training.png?w=225" data-large-file="https://stepupohlonedotorg1.files.wordpress.com/2019/10/participate-in-a-mental-health-advocacy-training.png?w=640" src="https://stepupohlonedotorg1.files.wordpress.com/2019/10/participate-in-a-mental-health-advocacy-training.png?w=768" alt="" class="wp-image-3086" srcset="https://stepupohlonedotorg1.files.wordpress.com/2019/10/participate-in-a-mental-health-advocacy-training.png?w=768 768w, https://stepupohlonedotorg1.files.wordpress.com/2019/10/participate-in-a-mental-health-advocacy-training.png?w=1536 1536w, https://stepupohlonedotorg1.files.wordpress.com/2019/10/participate-in-a-mental-health-advocacy-training.png?w=113 113w, https://stepupohlonedotorg1.files.wordpress.com/2019/10/participate-in-a-mental-health-advocacy-training.png?w=225 225w" sizes="(max-width: 768px) 100vw, 768px" /></figure></div>
+
+
+
+<h3 class="has-text-align-center"><a rel="noreferrer noopener" aria-label="Click here  (opens in a new tab)" href="https://stepupohlonedotorg1.files.wordpress.com/2019/10/step-up-ohlone-advocacy-training-application.pdf" target="_blank">Click here </a>to download the Advocacy Training application</h3>
+
+
+
+<h3 class="has-text-align-left"><a href="https://stepupohlonedotorg1.files.wordpress.com/2019/10/training-meeting-calendar.pdf">Click here</a> to see the training &amp; meeting calendar</h3>
+
+
+
+<div style="height:20px;" aria-hidden="true" class="wp-block-spacer"></div>
+
+
+
+<p></p>
+<div id="jp-post-flair" class="sharedaddy sd-like-enabled sd-sharing-enabled"><div class="sharedaddy sd-sharing-enabled"><div class="robots-nocontent sd-block sd-social sd-social-icon-text sd-sharing"><h3 class="sd-title">Share this:</h3><div class="sd-content"><ul><li class="share-twitter"><a rel="nofollow noopener noreferrer" data-shared="sharing-twitter-55" class="share-twitter sd-button share-icon" href="https://stepupohlone.org/training/on-campus-training/?share=twitter" target="_blank" title="Click to share on Twitter"><span>Twitter</span></a></li><li class="share-facebook"><a rel="nofollow noopener noreferrer" data-shared="sharing-facebook-55" class="share-facebook sd-button share-icon" href="https://stepupohlone.org/training/on-campus-training/?share=facebook" target="_blank" title="Click to share on Facebook"><span>Facebook</span></a></li><li class="share-end"></li></ul></div></div></div><div class='sharedaddy sd-block sd-like jetpack-likes-widget-wrapper jetpack-likes-widget-unloaded' id='like-post-wrapper-41613881-55-5d9e25b17e234' data-src='//widgets.wp.com/likes/index.html?ver=20190321#blog_id=41613881&amp;post_id=55&amp;origin=stepupohlonedotorg1.wordpress.com&amp;obj_id=41613881-55-5d9e25b17e234&amp;domain=stepupohlone.org' data-name='like-post-frame-41613881-55-5d9e25b17e234'><h3 class='sd-title'>Like this:</h3><div class='likes-widget-placeholder post-likes-widget-placeholder' style='height: 55px;'><span class='button'><span>Like</span></span> <span class="loading">Loading...</span></div><span class='sd-text-color'></span><a class='sd-link-color'></a></div></div>	</div><!-- .entry-content -->
+
+	</article><!-- #post-55 -->
+
+		</main><!-- #main -->
+	</section><!-- #primary -->
+
+
+</div><!-- #content -->
+
+<footer id="colophon" class="site-footer">
+	
+	<div class="site-info">
+		
+					<a class="site-name" href="https://stepupohlone.org/" rel="home">STEP Up Ohlone</a>,
+		
+		<a href="https://wordpress.com/?ref=footer_blog" rel="nofollow">Blog at WordPress.com.</a>
+
+		
+		
+	</div><!-- .site-info -->
+
+</footer><!-- #colophon -->
+
+</div><!-- #page -->
+
+<!--  -->
+<script type='text/javascript' src='//0.gravatar.com/js/gprofiles.js?ver=201941y'></script>
+<script type='text/javascript'>
+/* <![CDATA[ */
+var WPGroHo = {"my_hash":""};
+/* ]]> */
+</script>
+<script type='text/javascript' src='https://s1.wp.com/wp-content/mu-plugins/gravatar-hovercards/wpgroho.js?m=1380573781h'></script>
+
+	<script>
+		//initialize and attach hovercards to all gravatars
+		jQuery( document ).ready( function( $ ) {
+
+			if (typeof Gravatar === "undefined"){
+				return;
+			}
+
+			if ( typeof Gravatar.init !== "function" ) {
+				return;
+			}			
+
+			Gravatar.profile_cb = function( hash, id ) {
+				WPGroHo.syncProfileData( hash, id );
+			};
+			Gravatar.my_hash = WPGroHo.my_hash;
+			Gravatar.init( 'body', '#wp-admin-bar-my-account' );
+		});
+	</script>
+
+		<div style="display:none">
+	</div>
+
+	<div id="carousel-reblog-box">
+		<form action="#" name="carousel-reblog">
+			<textarea id="carousel-reblog-content" name="carousel-reblog-content" placeholder="Add your thoughts here... (optional)"></textarea>
+			<label for="carousel-reblog-to-blog-id" id="carousel-reblog-lblogid">Post to</label>
+			<select name="carousel-reblog-to-blog-id" id="carousel-reblog-to-blog-id">
+						</select>
+
+			<div class="submit">
+				<span class="canceltext"><a href="#" class="cancel">Cancel</a></span>
+				<input type="submit" name="carousel-reblog-submit" class="button" id="carousel-reblog-submit" value="Reblog Post" />
+				<input type="hidden" id="carousel-reblog-blog-id" value="41613881" />
+				<input type="hidden" id="carousel-reblog-blog-url" value="https://stepupohlone.org" />
+				<input type="hidden" id="carousel-reblog-blog-title" value="STEP Up Ohlone" />
+				<input type="hidden" id="carousel-reblog-post-url" value="" />
+				<input type="hidden" id="carousel-reblog-post-title" value="" />
+			</div>
+
+			<input type="hidden" id="_wpnonce" name="_wpnonce" value="1686392590" /><input type="hidden" name="_wp_http_referer" value="/training/on-campus-training/" />		</form>
+
+		<div class="arrow"></div>
+	</div>
+
+	<script type="text/javascript">
+		window.WPCOM_sharing_counts = {"https:\/\/stepupohlone.org\/training\/on-campus-training\/":55};
+	</script>
+				<link rel='stylesheet' id='all-css-0-2' href='https://s0.wp.com/wp-content/mu-plugins/carousel/jetpack-carousel.css?m=1563361695h&cssminify=yes' type='text/css' media='all' />
+<script type='text/javascript'>
+/* <![CDATA[ */
+var actionbardata = {"siteID":"41613881","siteName":"STEP Up Ohlone","siteURL":"https:\/\/stepupohlone.org","icon":"<img alt='' src='https:\/\/secure.gravatar.com\/blavatar\/5d7eb45ce2d79472c05da55da840ebf0?s=50&d=https%3A%2F%2Fs2.wp.com%2Fi%2Flogo%2Fwpcom-gray-white.png' class='avatar avatar-50' height='50' width='50' \/>","canManageOptions":"","canCustomizeSite":"","isFollowing":"","themeSlug":"pub\/modern-business","signupURL":"https:\/\/wordpress.com\/start\/","loginURL":"https:\/\/wordpress.com\/log-in?redirect_to=https%3A%2F%2Fstepupohlone.org%2Ftraining%2Fon-campus-training%2F&signup_flow=account&domain=stepupohlone.org","themeURL":"","xhrURL":"https:\/\/stepupohlone.org\/wp-admin\/admin-ajax.php","nonce":"270b3aec20","isSingular":"1","isFolded":"","isLoggedIn":"","isMobile":"","subscribeNonce":"<input type=\"hidden\" id=\"_wpnonce\" name=\"_wpnonce\" value=\"9270074bdd\" \/>","referer":"https:\/\/stepupohlone.org\/training\/on-campus-training\/","canFollow":"1","feedID":"25506059","statusMessage":"","customizeLink":"https:\/\/stepupohlonedotorg1.wordpress.com\/wp-admin\/customize.php?url=https%3A%2F%2Fstepupohlonedotorg1.wordpress.com%2Ftraining%2Fon-campus-training%2F","postID":"55","shortlink":"https:\/\/wp.me\/P2OBFD-T","canEditPost":"","editLink":"https:\/\/wordpress.com\/page\/stepupohlone.org\/55","statsLink":"https:\/\/wordpress.com\/stats\/post\/55\/stepupohlone.org","i18n":{"view":"View site","follow":"Follow","following":"Following","edit":"Edit","login":"Log in","signup":"Sign up","customize":"Customize","report":"Report this content","themeInfo":"Get theme: Modern Business","shortlink":"Copy shortlink","copied":"Copied","followedText":"New posts from this site will now appear in your <a href=\"https:\/\/wordpress.com\/\">Reader<\/a>","foldBar":"Collapse this bar","unfoldBar":"Expand this bar","editSubs":"Manage subscriptions","viewReader":"View site in Reader","viewReadPost":"View post in Reader","subscribe":"Sign me up","enterEmail":"Enter your email address","followers":"","alreadyUser":"Already have a WordPress.com account? <a href=\"https:\/\/wordpress.com\/log-in?redirect_to=https%3A%2F%2Fstepupohlone.org%2Ftraining%2Fon-campus-training%2F&signup_flow=account&domain=stepupohlone.org\">Log in now.<\/a>","stats":"Stats"}};
+/* ]]> */
+</script>
+<script type='text/javascript'>
+/* <![CDATA[ */
+var jetpackCarouselStrings = {"widths":[370,700,1000,1200,1400,2000],"is_logged_in":"","lang":"en","ajaxurl":"https:\/\/stepupohlone.org\/wp-admin\/admin-ajax.php","nonce":"ef381ff912","display_exif":"1","display_geo":"1","single_image_gallery":"1","single_image_gallery_media_file":"","background_color":"white","comment":"Comment","post_comment":"Post Comment","write_comment":"Write a Comment...","loading_comments":"Loading Comments...","download_original":"View full size <span class=\"photo-size\">{0}<span class=\"photo-size-times\">\u00d7<\/span>{1}<\/span>","no_comment_text":"Please be sure to submit some text with your comment.","no_comment_email":"Please provide an email address to comment.","no_comment_author":"Please provide your name to comment.","comment_post_error":"Sorry, but there was an error posting your comment. Please try again later.","comment_approved":"Your comment was approved.","comment_unapproved":"Your comment is in moderation.","camera":"Camera","aperture":"Aperture","shutter_speed":"Shutter Speed","focal_length":"Focal Length","copyright":"Copyright","comment_registration":"0","require_name_email":"0","login_url":"https:\/\/stepupohlonedotorg1.wordpress.com\/wp-login.php?redirect_to=https%3A%2F%2Fstepupohlone.org%2Ftraining%2Fon-campus-training%2F","blog_id":"41613881","meta_data":["camera","aperture","shutter_speed","focal_length","copyright"],"local_comments_commenting_as":"<fieldset><label for=\"email\">Email<\/label> <input type=\"text\" name=\"email\" class=\"jp-carousel-comment-form-field jp-carousel-comment-form-text-field\" id=\"jp-carousel-comment-form-email-field\" \/><\/fieldset><fieldset><label for=\"author\">Name<\/label> <input type=\"text\" name=\"author\" class=\"jp-carousel-comment-form-field jp-carousel-comment-form-text-field\" id=\"jp-carousel-comment-form-author-field\" \/><\/fieldset><fieldset><label for=\"url\">Website<\/label> <input type=\"text\" name=\"url\" class=\"jp-carousel-comment-form-field jp-carousel-comment-form-text-field\" id=\"jp-carousel-comment-form-url-field\" \/><\/fieldset>","reblog":"Reblog","reblogged":"Reblogged","reblog_add_thoughts":"Add your thoughts here... (optional)","reblogging":"Reblogging...","post_reblog":"Post Reblog","stats_query_args":"blog=41613881&v=wpcom&tz=-8&user_id=0&subd=stepupohlonedotorg1","is_public":"1","reblog_enabled":""};
+/* ]]> */
+</script>
+<script type='text/javascript'>
+/* <![CDATA[ */
+var sharing_js_options = {"lang":"en","counts":"1","is_stats_active":"1"};
+/* ]]> */
+</script>
+<script type='text/javascript' src='https://s1.wp.com/_static/??-eJyVkNFuwyAMRX9olPVhUfcw7Vsc8BInYJgx6fL3I9JSVVMVqU+2LvdwL9hrNi6xIqudivW4kMP8c5rKi707itXkUAfiYgPNWOx3xYojsA8o/806YmyWXHur1yasTIyKyFtCFkpCupqIXJ8iNVU3mhnXPoF4w7DQAEqJD8qCj8SmB7ERiqK0zaQFRci3nJv25A0q4OZyBLmt1wbdtt1N7ELdwtuLSiZ+pE/td2X9G6d714MsB5JqwWAn1Nx6mV04YHIqar4CkNgyghAP+2zQZ/w4v3Xvl+7y2p2nX5zMzaY='></script>
+<script type='text/javascript'>
+var windowOpen;
+			jQuery( document.body ).on( 'click', 'a.share-twitter', function() {
+				// If there's another sharing window open, close it.
+				if ( 'undefined' !== typeof windowOpen ) {
+					windowOpen.close();
+				}
+				windowOpen = window.open( jQuery( this ).attr( 'href' ), 'wpcomtwitter', 'menubar=1,resizable=1,width=600,height=350' );
+				return false;
+			});
+var windowOpen;
+			jQuery( document.body ).on( 'click', 'a.share-facebook', function() {
+				// If there's another sharing window open, close it.
+				if ( 'undefined' !== typeof windowOpen ) {
+					windowOpen.close();
+				}
+				windowOpen = window.open( jQuery( this ).attr( 'href' ), 'wpcomfacebook', 'menubar=1,resizable=1,width=600,height=400' );
+				return false;
+			});
+</script>
+	<script>
+	/(trident|msie)/i.test(navigator.userAgent)&&document.getElementById&&window.addEventListener&&window.addEventListener("hashchange",function(){var t,e=location.hash.substring(1);/^[A-z0-9_-]+$/.test(e)&&(t=document.getElementById(e))&&(/^(?:a|select|input|button|textarea)$/i.test(t.tagName)||(t.tabIndex=-1),t.focus())},!1);
+	</script>
+	<script type="text/javascript">
+// <![CDATA[
+(function() {
+try{
+  if ( window.external &&'msIsSiteMode' in window.external) {
+    if (window.external.msIsSiteMode()) {
+      var jl = document.createElement('script');
+      jl.type='text/javascript';
+      jl.async=true;
+      jl.src='/wp-content/plugins/ie-sitemode/custom-jumplist.php';
+      var s = document.getElementsByTagName('script')[0];
+      s.parentNode.insertBefore(jl, s);
+    }
+  }
+}catch(e){}
+})();
+// ]]>
+</script>		<iframe src='https://widgets.wp.com/likes/master.html?ver=20190321#ver=20190321' scrolling='no' id='likes-master' name='likes-master' style='display:none;'></iframe>
+		<div id='likes-other-gravatars'><div class="likes-text"><span>%d</span> bloggers like this:</div><ul class="wpl-avatars sd-like-gravatars"></ul></div>
+<script src="//stats.wp.com/w.js?60" type="text/javascript" async defer></script>
+<script type="text/javascript">
+_tkq = window._tkq || [];
+_stq = window._stq || [];
+_tkq.push(['storeContext', {'blog_id':'41613881','blog_tz':'-8','user_lang':'en','blog_lang':'en','user_id':'0'}]);
+_stq.push(['view', {'blog':'41613881','v':'wpcom','tz':'-8','user_id':'0','post':'55','subd':'stepupohlonedotorg1'}]);
+_stq.push(['extra', {'crypt':'UE40eW5QN0p8M2Y/RE1TaVhzUzFMbjdWNHpwZGhTayxPSUFCMGRVYVNrSFguN3FwSmQ5RGtNX3VQcj1yVzhiflM1THQtLGFdQ2toOXYlSElFaXppLU5FdUFvd0szSjFCUj9bd3hNMlFQWzFGOVJ+bDZ+akRsWTBPMWU4K35pWWhHeix3QURvR0FkLjVxfHZXU0tnTmNsUU8sWlcscy95ZjBFUzJ3anQuZXBGVz1wQjdjSXRMYTN0SUomOXhFcnolVG4vLDM9OXhzYUlRWS4ycnl0K2ZmTEo/SHZlLC1DZnM5UVB+YmlUQ3Fmc2FWajdVdWc2WGE/dlVvNFEzaA=='}]);
+_stq.push([ 'clickTrackerInit', '41613881', '55' ]);
+	</script>
+<noscript><img src="https://pixel.wp.com/b.gif?v=noscript" style="height:0px;width:0px;overflow:hidden" alt="" /></noscript>
+<script>
+if ( 'object' === typeof wpcom_mobile_user_agent_info ) {
+
+	wpcom_mobile_user_agent_info.init();
+	var mobileStatsQueryString = "";
+	
+	if( false !== wpcom_mobile_user_agent_info.matchedPlatformName )
+		mobileStatsQueryString += "&x_" + 'mobile_platforms' + '=' + wpcom_mobile_user_agent_info.matchedPlatformName;
+	
+	if( false !== wpcom_mobile_user_agent_info.matchedUserAgentName )
+		mobileStatsQueryString += "&x_" + 'mobile_devices' + '=' + wpcom_mobile_user_agent_info.matchedUserAgentName;
+	
+	if( wpcom_mobile_user_agent_info.isIPad() )
+		mobileStatsQueryString += "&x_" + 'ipad_views' + '=' + 'views';
+
+	if( "" != mobileStatsQueryString ) {
+		new Image().src = document.location.protocol + '//pixel.wp.com/g.gif?v=wpcom-no-pv' + mobileStatsQueryString + '&baba=' + Math.random();
+	}
+	
+}
+</script>
+</body>
+</html>
+<!--
+	generated in 0.148 seconds
+	49812 bytes batcached for 300 seconds
+-->
